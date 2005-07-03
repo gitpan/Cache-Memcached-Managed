@@ -1,0 +1,25 @@
+0.07	3 July 2005
+	Fixed problem with return value of "start".  Optimized "stats".
+	Added stress test related to groups, which unfortunately seems to
+	fail on Tiger (with its crippled libevent support).
+
+0.06	1 July 2005
+	Fixed problems with relative keys and version support.
+
+0.05	30 June 2005
+	Added initial tests for checking behaviour after fork().
+
+0.04	29 June 2005
+	Added methods "start", "stop" and "version".  Removed starting /
+	stopping logic from testlib.  Adapted test-suite to account for these
+	new methods.  Basic testing should now cover all methods (albeit not
+	with all parameter combinations yet.
+
+0.03	28 June 2005
+	Tweaks and fixes and more tests.
+
+0.02    27 June 2005
+	Tweaks and fixes and a much more expanded test-suite.
+
+0.01    26 June 2005
+	First public version of Cache::Memcached::Managed.

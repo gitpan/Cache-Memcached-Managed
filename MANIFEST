@@ -1,0 +1,14 @@
+MANIFEST
+CHANGELOG
+COPYING
+GNUGPL
+README
+TODO
+VERSION
+Makefile.PL
+lib/Cache/Memcached/Managed.pm
+t/001basic.t
+t/010fork.t
+t/020grab.t
+testlib
+META.yml                                 Module meta-data (added by MakeMaker)
