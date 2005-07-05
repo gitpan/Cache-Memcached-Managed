@@ -2,7 +2,7 @@ package Cache::Memcached::Managed;
 
 # Make sure we have version info for this module
 
-$VERSION = '0.07';
+$VERSION = '0.09';
 
 # Make sure we're as strict as possible
 # With as much feedback that we can get
@@ -68,7 +68,7 @@ sub new {
 # Obtain the parameter hash
 
     my $class = shift;
-    my %self = @_ == 1 ? (data => shift) : @_;
+    my %self = @_ < 2 ? (data => (shift || '127.0.0.1:11211')) : @_;
 
 # Set the default expiration if not set already
 # Set the delimiter if not set already
@@ -123,11 +123,11 @@ sub new {
 
 # Quit now if no data server available
 # Set directory server if there was no data server
-# Mark this object as connectionless as yet
+# Remember the pid for fork checking
 
     die "No valid data server specification found" unless blessed $self{'data'};
     $self{'directory'} = $self{'data'} unless blessed $self{'directory'};
-    $self{'_last_pid'} = '';
+    $self{'_last_pid'} = $$;
 
 # Return the hash as blessed object
 
@@ -709,15 +709,29 @@ sub replace { shift->_do( 'replace',@_ ) } #replace
 # Reset the client side of the cache system
 #
 #  IN: 1 instantiated object
+# OUT: 1 returns true
 
 sub reset {
 
 # Obtain the object
-# Disconnect all sockets for both backends
-# Set last pid used flag
+# Obtain local copy of data and directory object
 
     my $self = shift;
-    $self->$_->disconnect_all foreach qw(data directory);
+    my ($data,$directory) = ($self->data,$self->directory);
+
+# For all of the Cache::Memcached objects we need to handle
+#  Disconnect all sockets
+#  Kickstart connection logic
+
+    foreach ($data == $directory ? ($data) : ($data,$directory)) {
+        $_->disconnect_all;
+        $_->forget_dead_hosts; # not sure official C::Memcached API
+    }
+
+# Make sure we try to connect again
+# Set last pid used flag
+
+    $self->_mark_connected;
     $self->{'_last_pid'} = $$;
 } #reset
 
@@ -789,7 +803,8 @@ sub start {
     my $started = 0;
     foreach (@_) {
         my ($ip,$port) = split ':';
-        $started++ unless system 'memcached','-d','-l',$ip,'-p',$port;
+        $started++ unless system 'memcached',
+         '-d','-u',(scalar getpwuid $>),'-l',$ip,'-p',$port;
     }
 
 # Return whether all servers started
@@ -1036,7 +1051,7 @@ sub _data_keys {
         
         } else {
             $self->flush_all;
-            undef $self->{'_last_pid'};
+            $self->_mark_disconnected;
             return;
         }
     }
@@ -1068,26 +1083,22 @@ sub _data_keys {
 
 sub _check_socket {
 
+# Quickest way out in the most common case
+
+    return 1 if $$ == $_[0]->{'_last_pid'} and !exists $_[0]->{'_disconnected'};
+
 # Obtain the object
-# Obtain the last PID setting
-# Return indicating failure if no valid socket
-# Return indicating ok if we're running in the same process now
+# Return result of reset if we're in a different process now
 
     my $self = shift;
-    my $last_pid = $self->{'_last_pid'};
-    return unless defined $last_pid;
-    return 1 if $last_pid eq $$;
+    return $self->reset if $$ != $self->{'_last_pid'};
 
-# If we had a valid socket before
-#  Disconnect all data server handles
-#  Disconnect all directory server handles if seperate directory server used
-# Remember this process as the last one now, and return that
+# Mark object as connected if waited long enough
+# Return (possibly changed) status
 
-    if ($last_pid) {
-        $self->data->disconnect_all;
-        $self->directory->disconnect_all if $self->directory != $self->data;
-    }
-    $self->{'_last_pid'} = $$;
+    $self->_mark_connected 
+     if $self->{'_disconnected'} and time > $self->{'_disconnected'};
+    return !$self->{'_disconnected'};
 } #_check_socket;
 
 #---------------------------------------------------------------------------
@@ -1172,7 +1183,7 @@ sub _do {
 # Check the socket
 
     my ($self,$method) = splice @_,0,2;
-    return unless $self->_check_socket;
+    return undef unless $self->_check_socket;
 
 # Obtain the parameter hash
 # Create the key, removing key specification on the fly
@@ -1209,29 +1220,33 @@ sub _do {
 # Elseif we're trying to increment (and action failed)
 #  Add an entry with the indicated value or 1
 # Elsif we're not doing a set (so: add|decr|replace and failed)
-#  Just return empty handed
+#  Just return with whatever we got
 
-    if ($result or (defined $result and length $result)) {
+    if ($result) {
         return $result if $method =~ m#^(?:decr|incr|replace)$#;
     } elsif ($method eq 'incr') {
         $result = $data->add( $data_key,$value || 1,$expiration);
     } elsif ($method ne 'set') {
-        return;
+        return $result;
     }
 
 # Obtain the directory server
 # If we still don't have a good result
-#  Obtain the bucket for this backend key
-#  Increment error for given server
+#  If we can obtain a bucket for this data key
+#   If we can lose the prefix
+#    Increment error for given server
 #  Block all access for this process
 #  Return indicating error
 
     my $directory = $self->directory;
-    unless (defined $result) {
-        (my $bucket = $data->get_sock( $data_key )) =~ s#^Sock_##;;
-        $directory->add( $bucket,1 ) unless $directory->incr( $bucket );
-        undef $self->{'_last_pid'};
-        return;
+    unless ($result) {
+        if (my $bucket = $data->get_sock( $data_key )) {
+            if ($bucket =~ s#^Sock_##) {
+                $directory->add( $bucket,1 ) unless $directory->incr( $bucket );
+            }
+        }
+        $self->{'_disconnected'} = 1;
+        return undef;
     }
 
 # Obtain hash ref to valid group names
@@ -1254,8 +1269,8 @@ sub _do {
 
         unless (defined $index) {
             unless (defined $directory->add( $directory_key,$index = 1 )) {
-                undef $self->{'_last_pid'};
-                return;
+                $self->{'_disconnected'} = 1;
+                return undef;
             }
         }
 
@@ -1265,8 +1280,8 @@ sub _do {
             
         unless ($directory->set(
          $self->_index_key( $directory_key,$index ),$data_key,$expiration )) {
-            undef $self->{'_last_pid'};
-            return;
+            $self->{'_disconnected'} = 1;
+            return undef;
         }
     }
 
@@ -1292,18 +1307,20 @@ sub _expiration2seconds {
 
     my $expiration = $_[1];
     return unless defined $expiration;
-    return unless $expiration =~ m#^[sSmMhHdD\d]+$#;
+    return unless $expiration =~ m#^[sSmMhHdDwW\d]+$#;
 
 # Convert seconds into seconds
 # Convert minutes into seconds
 # Convert hours into seconds
 # Convert days into seconds
+# Convert weeks into seconds
 
     my $seconds = 0;
     $seconds += $1 if $expiration =~ m#(\d+)[sS]#;
     $seconds += (60 * $1) if $expiration =~ m#(\d+)[mM]#;
     $seconds += (3600 * $1) if $expiration =~ m#(\+?\d+)[hH]#;
     $seconds += (86400 * $1) if $expiration =~ m#(\+?\d+)[dD]#;
+    $seconds += (604800 * $1) if $expiration =~ m#(\+?\d+)[wW]#;
 
 # Return the resulting sum
 
@@ -1398,6 +1415,31 @@ sub _lexicalize {
 sub _lowest_index_key { $_[1].$_[0]->delimiter.'_lowest' } #_lowest_index_key
 
 #---------------------------------------------------------------------------
+# _mark_connected
+#
+# Mark the object as connected
+#
+#  IN: 1 instantiated object
+
+sub _mark_connected { delete $_[0]->{'_disconnected'} } #_mark_connected
+
+#---------------------------------------------------------------------------
+# _mark_disconnected
+#
+# Mark the object as disconnected: all actions will fail for a random
+# amount of time.
+#
+#  IN: 1 instantiated object
+#      2 amount of time to mark as disconnected (default: 20..30)
+
+sub _mark_disconnected {
+
+# Mark the object as disconnected
+
+    $_[0]->{'_disconnected'} = time + ($_[1] || 20 + int rand 10)
+} #_mark_disconnected
+
+#---------------------------------------------------------------------------
 # _morelines
 #
 # Handle non-API request that returns multiple lines
@@ -1479,9 +1521,7 @@ Cache::Memcached::Managed - provide API for managing cached information
 
  use Cache::Memcached::Managed;
 
- my $cache = Cache::Memcached::Managed->new( 
-  data => [127.0.0.1:12345],
- );
+ my $cache = Cache::Memcached::Managed->new( '127.0.0.1:12345' );
 
  $cache->set( $value );
 
@@ -1490,23 +1530,93 @@ Cache::Memcached::Managed - provide API for managing cached information
  $cache->set( value      => $value,
               id         => $id,
               key        => $key,
-              version    => 1.1
-              expiration => 86400 );
+              version    => 1.1,
+              namespace  => 'foo',
+              expiration => '1D', );
 
  my $value = $cache->get( $id );
 
  my $value = $cache->get( id  => $id,
                           key => $key );
 
- $cache->expiration( $key,$expiration );
-
-=head1 DESCRIPTION
+=head1 DIFFERENCES FROM THE Cache::Memcached API
 
 The Cache::Memcached::Managed module provides an API to values, cached in
 one or more memcached servers.  Apart from being very similar to the API
 of L<Cache::Memcached>, the Cached::Memcached::Managed API allows for
 management of groups of values, for simplified key generation and expiration,
-as well as version and namespace management.
+as well as version and namespace management and a few other goodies.
+
+These are the main differences between this module and the L<Cache::Memcached>
+module.
+
+=head2 automatic key generation
+
+The calling subroutine provides the key (by default).  Whenever the "get"
+and "set" operations occur in the same subroutine, you don't need to think
+up an identifying key that will have to be unique across the entire cache.
+
+=head2 ID refinement
+
+An ID can be added to the (automatically) generated key (none is by default),
+allowing easy identification of similar data objects (e.g. the primary key of
+a Class::DBI object).  If necessary, a unique ID can be created automatically
+(useful when logging events).
+
+=head2 version management
+
+The caller's package provides an identifying version (by default), allowing
+differently formatted data-structures caused by source code changes, to live
+seperately from each other in the cache.
+
+=head2 namespace support
+
+A namespace identifier allows different realms to co-exist in the same cache (the uid by default).  This e.g. allows a group of developers to all use the same cache without interfering with each other.
+
+=head2 group management
+
+A piece of cached data can be assigned to any number of groups.  Cached data
+can be retrieved and removed by specifying the group to which the data
+belongs.  This can be used to selectively remove cached data that has been
+invalidated by a database change, or to obtain logged events of which the
+identification is not known (but the group name is).
+
+=head2 easy (default) expiration specification
+
+A default expiration per Cache::Memcached::Managed object can be specified.
+Expirations can be used by using mnemonics D, H, M, S, (e.g. '2D3H' would
+be 2 days and 3 hours).
+
+=head2 automatic fork() detection
+
+Sockets are automatically reset in forked processes, no manual reset needed.
+This allows the module to be used to access cached data during the server
+start phase in a mod_perl environment.
+
+=head2 magical increment
+
+Counters are automagically created with L<incr> if they don't exist yet.
+
+=head2 instant invalidation
+
+Support for the new "flush_all" memcached action to invalidate all data in
+a cache in one fell swoop.
+
+=head2 dead memcached server detection
+
+An easy way to check whether all related memcached servers are still alive.
+
+=head2 starting/stopping memcached servers
+
+Easy start / stop of indicated memcached servers, mainly intended for
+development and testing environments.
+
+=head2 extensive test-suite
+
+An extensive test-suite is included (which is sadly lacking in the
+Cache::Memcached distribution).
+
+=head1 BASIC PREMISES
 
 The basic premise is that each piece of information that is to be cached,
 can be identified by a L<key>, an optional L<ID>, a L<version> and a
@@ -1528,9 +1638,9 @@ Explicit keys can be specified and may contain any characters except the
 L<delimiter>.
 
 A special case is applicable if the cache is being accessed from the lowest
-level in a script.  In that case a special key will created consisted of the
-server name (as determined by C<uname -n>) and the absolute path of the
-executing script.
+level in a script.  In that case the default key will be created consisted
+of the server name (as determined by C<uname -n>) and the absolute path of
+the executing script.
 
 =head2 ID
 
@@ -1568,10 +1678,10 @@ with the group of the information being cached.
 
 =head2 namespace management
 
-The namespace indicate the realm to which the data belongs.  By default, the
-effective user id of the process (as known by $>) is assumed.  This allows
-several users to share the same L<"data server"> and L<"directory server">,
-while each still having their own set of cached data.
+The namespace indicates the realm to which the data belongs.  By default,
+the effective user id of the process (as known by $>) is assumed.  This
+allows several users to share the same L<"data server"> and
+L<"directory server">, while each still having their own set of cached data.
 
 A specific namespace can be specified with each of the L<add>, L<decr>,
 L<get>, L<get_multi>, L<incr>, L<replace> and L<set> to indicate the link
@@ -1601,20 +1711,23 @@ concatenated with the L<delimiter>.
 
 The group concept was added to allow easier management of cached
 information.  Since it is impossible to delete cached information from
-the L<"data server"> by a I<matching> a wildcard key value (because you can
-only access cached information if you know the I<exact> key), another way was
-needed to access groups of cached data.  This is achieved by using a
+the L<"data server"> by a matching a wildcard key value (because you can
+only access cached information if you know the exact key), another way was
+needed to access groups of cached data.
+
+Another way that would not need another (database) backend or be dependent
+on running on a single hardware.  This is achieved by using a
 L<"directory server">, which is basically just another memcached server
 dedicated to keeping a directory of data kept in the L<"data server">.
 
 The group concept allows you to associate a given L<"data key"> to a named
-group and an ID value (e.g. the group named "group" and the name of an
+group and an group ID value (e.g. the group named "group" and the name of an
 SQL table).  This information is then stored in the L<"directory server">,
 from which it is possible to obtain a list of L<"data keys"> associated with
 the group name and the ID value.
 
-In the current implementation, the following group names are recognized
-by default:
+In the current implementation, the only one group name is recognized by
+default:
 
 =over 2
 
@@ -1624,7 +1737,8 @@ Intended for generic data without specific keys.
 
 =back
 
-You can specify your own set of group names in L<new>.
+You can specify your own set of group names with the "group_names"
+parameter in L<new>.
 
 Group names and ID's can be specified with each of the L<add>, L<decr>,
 L<incr>, L<replace> and L<set> to indicate the link with the group of the
@@ -1634,11 +1748,11 @@ The pseudo group ID 'C<:key>' can be specified to indicate that the key
 should be used for the group ID.  This is usually used in conjunction with
 the generic 'C<group>' group name
 
-A list of valid group names can be obtained with L<group_names>.
+A list of valid group names can be obtained with the L<group_names> method.
 
 =head2 directory server
 
-The directory server is a Cache::Memcached (compatible) object that is beingi
+The directory server is a Cache::Memcached (compatible) object that is being
 used to store L<"data key">s (as opposed to the data itself) used in
 L<"group management">.  If no L<directory> server was specified, then the
 data server will be assumed.
@@ -1647,6 +1761,11 @@ If there are multiple memcached servers used for the L<"data server">, then
 it is advised to use a seperate directory server (as a failure in one of
 the memcached backend servers will leave you with an incomplete directory
 otherwise).
+
+Should the directory server fail, and it is vital that there is no stale data
+in the data server, then a L<flush_all> would need to be executed to ensure
+that no stale data remains behind.  Of course, this will also delete all
+non-stale data from the data server, so your mileage may vary.
 
 =head2 expiration specification
 
@@ -1663,8 +1782,9 @@ means 2 days and 3 hours, which means B<183600> seconds.
 
 Using this module, you do not have to worry if everything will still work
 after a fork().  As soon as it is detected that the process has forked, new
-handles will be opened to the memcached servers (so the "disconnect_all" of
-L<Cache::Memcached> is no longer needed).
+handles will be opened to the memcached servers in the child process (so the
+meticulous calling of "disconnect_all" of L<Cache::Memcached> is no longer
+needed).
 
 Transparent thread handling is still on the todo list.
 
@@ -1672,21 +1792,23 @@ Transparent thread handling is still on the todo list.
 
 =head2 new
 
- my $cache = Cache::Memcached::Managed->new( '127.0.0.1:11211' );
+ my $cache = Cache::Memcached::Managed->new;
+
+ my $cache = Cache::Memcached::Managed->new( '127.0.0.1:11311' );
 
  my $cache = Cache::Memcached::Managed->new(
-  data        => '127.0.0.1:11211',
-  directory   => '127.0.0.1:11311',   # default: data
+  data        => '127.0.0.1:11311',   # default: '127.0.0.1:11211'
+  directory   => '127.0.0.1:11411',   # default: data
   delimiter   => ';',                 # default: '#'
   expiration  => '1H',                # default: '1D'
-  namespace   => 'foo',               # default: $>
+  namespace   => 'foo',               # default: $> ($EUID)
   group_names => [qw(foo bar)],       # default: ['group']
  );
 
-Create a new Cache::Memcached::Managed object. If there is only one input
-parameter, then it is assumed to be the value of the "data" field.  If there
-are more than one input parameter, the it is assumed to be a hash with the
-following fields.
+Create a new Cache::Memcached::Managed object.  If there is less than two
+input parameter, then it is assumed to be the value of the "data" field,
+with a default of '127.0.0.1:11211'.  If there are more than one input
+parameter, the parameters are assumed to be a hash with the following fields:
 
 =over 2
 
@@ -1706,10 +1828,10 @@ following fields.
 The specification of the memcached server backend(s) for the L<"data server">.
 It should either be:
 
-- string with comma seperated memcached server specification
-- list ref with memcached server specification
-- hash ref with Cache::Memcached object specification
-- blessed object adhering to the Cache::Memcached API
+ - string with comma seperated memcached server specification
+ - list ref with memcached server specification
+ - hash ref with Cache::Memcached object specification
+ - blessed object adhering to the Cache::Memcached API
 
 There is no default for this field, it B<must> be specified.  The blessed
 object can later be obtained with the L<data> method.
@@ -1724,6 +1846,9 @@ character '#'.  Can be any character that will not be part of L<key>, L<ID>,
 L<version> or L<namespace> values.
 
 The current delimiter can be obtained with the L<delimiter> method.
+
+Using the null byte (I<\\0>) is not advised at this moment, as there are
+some encoding issues within L<Cache::Memcached> regarding null bytes.
 
 =item directory
 
@@ -1741,12 +1866,12 @@ The current delimiter can be obtained with the L<delimiter> method.
 The specification of the memcached server backend(s) for the
 L<"directory server">.  It should either be:
 
-- string with comma seperated memcached server specification
-- list ref with memcached server specification
-- hash ref with Cache::Memcached object specification
-- blessed object adhering to the Cache::Memcached API
+ - string with comma seperated memcached server specification
+ - list ref with memcached server specification
+ - hash ref with Cache::Memcached object specification
+ - blessed object adhering to the Cache::Memcached API
 
-If this field is not specified, the L<"data server"> objects will be assumed.
+If this field is not specified, the L<"data server"> object will be assumed.
 The blessed object can later be obtained with the L<directory> method.
 
 =item expiration
@@ -1756,15 +1881,16 @@ The blessed object can later be obtained with the L<directory> method.
 The specification of the default L<expiration>.  The following postfixes
 can be specified:
 
-- S seconds
-- M minutes
-- H hours
-- D days
+ - S seconds
+ - M minutes
+ - H hours
+ - D days
+ - W weeks
 
 The default default expiration is one day ('1D').  The default expiration will
 be used whenever no expiration has been specified with L<add>, L<decr>,
-L<incr>, L<replace> or L<set>.  The current expiration can be obtained with
-the L<expiration> method.
+L<incr>, L<replace> or L<set>.  The default expiration can be obtained
+with the L<expiration> method.
 
 =item group_names
 
@@ -1775,7 +1901,7 @@ reference to the allowable group names.  Defaults to one element list reference
 with 'group' only.
 
 Any group name can be specified, as long it consists of alphanumeric characters
-and does not interfere with other functions.  Currently disallowed are:
+and does not interfere with other functions.  Currently disallowed name are:
 
  - data
  - delete
@@ -1791,10 +1917,12 @@ a penalty.
 
 =item namespace
 
- namespace => 'foo',   # default: $>
+ namespace => 'foo',   # default: $> ($EUID)
 
-The specification of the default L<namespace> as (implicitely) specified with
-L<new>.
+The specification of the default L<namespace> to be used with L<set>, L<incr>,
+L<decr>, L<add>, L<replace>, L<get>, L<get_multi>, L<group>, L<get_group> and
+L<grab_group>.  Defaults to the effective user ID of the process, as
+indicated by $> ($EUID).
 
 =back
 
@@ -1836,7 +1964,7 @@ Returns the memcached backend L<servers> that appear to be non-functional.
 In list context returns the specifications of the servers in alphabetical
 order.  Returns a hash reference in scalar context, where the unresponsive
 servers are the keys.  Call L<errors> to obtain the number of errors that
-were found for each memcached backend server.
+were found for each memcached server.
 
 =head2 decr
 
@@ -1873,9 +2001,9 @@ counter and are therefore set only with L<set>, L<add> or L<incr>.
                  namespace => 'foo',   # optional
                );
 
-Delete a value, associated with a L<"data key">, from the cache.  Can be
-called with unnamed and named parameters.  If called with unnamed parameters,
-then they are:
+Delete a value, associated with the specified L<"data key">, from the cache.
+Can be called with unnamed and named parameters (assumed if two or more
+input parameters given).  If called with unnamed parameters, then they are:
 
 =over 2
 
@@ -1954,7 +2082,7 @@ Returns the default expiration as (implicitely) specified with L<new>.
  my $flushed = $cache->flush_all;
 
 Initialize contents of all of the memcached backend servers of the
-L<"data server">.  Returns the number of memcached backend L<servers> that
+L<"data server">.  Returns the number of memcached L<servers> that
 were succesfully flushed.
 
 =head2 get
@@ -2159,9 +2287,9 @@ called in scalar context.
 Increment a value to the cache.  Otherwise the same as L<set>.  Default for
 value is B<1>.
 
-Differently from L<Cache::Memcached>, this increment function is magical in
-the sense that it will L<add> the counter automagically if it doesn't exist
-yet.
+Differently from the incr() of L<Cache::Memcached>, this increment function
+is magical in the sense that it automagically will L<add> the counter if it
+doesn't exist yet.
 
 Please note that any L<group|"group management"> associations will only be
 set when the counter is created (and will be ignored in any subsequent
@@ -2199,6 +2327,7 @@ counter and are therefore set only with L<set>, L<add> or L<incr>.
  $cache->reset;
 
 Resets the client side of the cache system.  Mainly for internal usage only.
+Always returns true.
 
 =head2 servers
 
@@ -2215,6 +2344,8 @@ not responding.
 
 =head2 set
 
+ $cache->set;
+
  $cache->set( $value );
 
  $cache->set( $value,$id );
@@ -2230,8 +2361,9 @@ not responding.
 
 Set a value in the cache, regardless of whether it exists already or not.
 
-Can be called with named or unnamed parameters.  If called with unnamed
-parameters, then the input parameters are:
+Can be called with named or unnamed parameters (if called with two input
+parameters or less).  If called with unnamed parameters, then the input
+parameters are:
 
 =over 2
 

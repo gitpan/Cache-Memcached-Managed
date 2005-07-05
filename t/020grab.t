@@ -19,7 +19,7 @@ $Foo::VERSION = 'Foo::VERSION';
 
 # Set up test and strictness
 
-use Test::More tests => 36019;
+use Test::More tests => 36018;
 use strict;
 use warnings;
 
@@ -31,7 +31,7 @@ use List::Util qw(shuffle);
 
 my $cache;
 END {
-  diag( "\nStopped memcached server" )
+  diag( "\nStopped memcached server(s)" )
    if $cache and ok( $cache->stop,"Check if all servers have stopped" );
 } #END
 
@@ -54,11 +54,12 @@ my $config = "127.0.0.1:$port";
 $cache = $class->new( $config );
 isa_ok( $cache,$class,"Check whether object ok" );
 
-# Start the server, give it time to warm up
+# Start the server, skip further tests if failed
 
-diag( "\nStarted memcached server" )
- if is( $cache->start,1,"Check if memcached server started" );
-sleep 2;
+SKIP: {
+skip( "Memcached server not started",36014 ) unless $cache->start;
+sleep 2; # let the server warm up
+diag( "\nStarted memcached server" );
 
 # Set the number of items to check
 # Set them all in random order
@@ -108,6 +109,7 @@ diag( Data::Dumper::Dumper( $got,$expected ) ) unless
 # Stop the single memcached server setup
 
 ok( $cache->stop,"Check if single server has stopped" );
+diag( "\nStopped memcached server" );
 
 # Obtain ports and create config
 
@@ -206,6 +208,8 @@ $expected = {
 diag( Data::Dumper::Dumper( $got,$expected ) ) unless
  is_deeply( $got,$expected,
   "Check if final stats with two servers correct" );
+
+} #SKIP
 
 #---------------------------------------------------------------------
 # Foo::set

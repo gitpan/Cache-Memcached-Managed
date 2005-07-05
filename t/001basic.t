@@ -7,7 +7,7 @@ $Foo::VERSION = 'Foo::VERSION';
 
 # Set up tests and strictness
 
-use Test::More tests => 183;
+use Test::More tests => 182;
 use strict;
 use warnings;
 
@@ -75,10 +75,12 @@ $cache = $class->new( $config );
 isa_ok( $cache,$class,
  "Check whether object ok" );
 
-# Start the server
+# Start the server, skip further tests if failed
 
-is( $cache->start,1,
- "Check if memcached server started" );
+SKIP: {
+skip( "Memcached server not started",177 ) unless $cache->start;
+sleep 2; # let the server warm up
+diag( "\nStarted memcached server" );
 
 # Check version info
 
@@ -87,10 +89,9 @@ my $version = $versions->{$config};
 ok( $version,
  "Check whether version information available" );
 
-# Show what was started
+# Show warning if memcached version questionable
 
 my $pid = $cache->stats->{$config}->{'pid'};
-diag( "\nStarted memcached server on port $port, running version $version (pid $pid)" );
 diag( <<DIAG ) if $version lt '1.1.12';
 
 \b\b******************** please UPGRADE memcached server software ******************
@@ -367,6 +368,8 @@ my $expected = {
 diag( Data::Dumper::Dumper( $got,$expected ) ) unless
  is_deeply( $got,$expected,
   "Check if final stats correct" );
+
+} #SKIP
 
 #--------------------------------------------------------------------------
 # Foo::bar

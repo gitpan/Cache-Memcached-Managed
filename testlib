@@ -64,7 +64,7 @@ sub ft {
     if (defined wantarray) {
         return $text;
     } elsif (@_) {
-        $text .= "$_[0]#$_[1]\n";
+        $text .= ($_[0] || '')."#$_[1]\n";
     } else {
         $text = '';
     }
@@ -81,9 +81,13 @@ sub pft {
 
 # Obtain handle for reading file
 # Process all lines
+# Close the file
+# Remove the file
 
     open my $handle,$_[0] or die;
     chomp,&ok( split "#" ) while <$handle>;
+    close $handle;
+    unlink $_[0];
 } #pft
 
 #------------------------------------------------------------------------

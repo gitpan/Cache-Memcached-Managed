@@ -1,3 +1,23 @@
+0.09	5 July 2005
+	Further refined the fork checking / dead server logic: connection
+	attempts are now made again after 20..30 seconds, instead of never
+	in the current process.
+
+	Fixed problem that would cause an empty list to be returned in case
+	of failure in list context: this affected "set", "add", "replace",
+	"incr" and "decr".  A false value is now returned regardless of
+	context.
+
+	4 July 2005
+	Completely reworked the fork checking logic.  Child processes of
+	parent processes that have been disconnected, now attempt to
+	reconnect.
+
+0.08	4 July 2005
+	Fixed many documentation problems.  Added default data server
+	functionality to "new".  Added "W" to allow expirations to be
+	specified by week.
+
 0.07	3 July 2005
 	Fixed problem with return value of "start".  Optimized "stats".
 	Added stress test related to groups, which unfortunately seems to
