@@ -1,3 +1,9 @@
+0.10	6 July 2005
+	Changed return value of "flush_all" to boolean rather than number
+	of servers flushed.  Added support for "flush_interval".  Added
+	file "flush_interval.patch" to distribution to add time flush_all
+	support to memcached itself.
+
 0.09	5 July 2005
 	Further refined the fork checking / dead server logic: connection
 	attempts are now made again after 20..30 seconds, instead of never

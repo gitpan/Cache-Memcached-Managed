@@ -6,6 +6,7 @@ README
 TODO
 VERSION
 Makefile.PL
+flush_interval.patch
 lib/Cache/Memcached/Managed.pm
 t/001basic.t
 t/010fork.t

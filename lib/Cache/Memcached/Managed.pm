@@ -2,7 +2,7 @@ package Cache::Memcached::Managed;
 
 # Make sure we have version info for this module
 
-$VERSION = '0.09';
+$VERSION = '0.10';
 
 # Make sure we're as strict as possible
 # With as much feedback that we can get
@@ -41,6 +41,7 @@ BEGIN {
  delimiter
  directory
  expiration
+ flush_interval
  namespace
      );
 } #BEGIN
@@ -364,6 +365,7 @@ sub errors {
 # Flush the contents of all servers (without rebooting them)
 #
 #  IN: 1 instantiated object
+#      2 number of seconds between flushes (default: flush_interval)
 # OUT: 1 number of servers successfully flushed
 
 sub flush_all {
@@ -372,22 +374,32 @@ sub flush_all {
 # Obtain the data server
 # Obtain the servers
 
-    my $self = shift;
+    my ($self,$interval) = @_;
     my $data = $self->data;
     my @server = @{$data->{'servers'}};
 
+# Use default interval if none specified
 # Initialize number of servers flushed
-# For all of the servers minus the directory server
-#  Increment flushed if flush was successful
+# Initialize amount of time to wait
 
+    $interval = $self->flush_interval unless defined $interval;
     my $flushed = 0;
+    my $time    = 0;
+
+# For all of the servers minus the directory server
+#  Create the action
+#  Increment flushed if flush was successful
+#  Increment time if we need to
+
     foreach (0..$#server) {
-        $flushed++ if $self->_oneline( $data,"flush_all",$_,"OK" );
+        my $action = $interval ? "flush_all $time" : "flush_all";
+        $flushed++ if $self->_oneline( $data,$action,$_,"OK" );
+        $time += $interval if $interval;
     }
 
-# Return number of flushed servers
+# Return whether all servers successfully flushed
 
-    $flushed;
+    $flushed = @server;
 } #flush_all
 
 #---------------------------------------------------------------------------
@@ -1050,7 +1062,7 @@ sub _data_keys {
 #   Return emptyhanded
         
         } else {
-            $self->flush_all;
+            $self->flush_all( $self->flush_interval );
             $self->_mark_disconnected;
             return;
         }
@@ -1797,12 +1809,13 @@ Transparent thread handling is still on the todo list.
  my $cache = Cache::Memcached::Managed->new( '127.0.0.1:11311' );
 
  my $cache = Cache::Memcached::Managed->new(
-  data        => '127.0.0.1:11311',   # default: '127.0.0.1:11211'
-  directory   => '127.0.0.1:11411',   # default: data
-  delimiter   => ';',                 # default: '#'
-  expiration  => '1H',                # default: '1D'
-  namespace   => 'foo',               # default: $> ($EUID)
-  group_names => [qw(foo bar)],       # default: ['group']
+  data           => '127.0.0.1:11311',   # default: '127.0.0.1:11211'
+  directory      => '127.0.0.1:11411',   # default: data
+  delimiter      => ';',                 # default: '#'
+  expiration     => '1H',                # default: '1D'
+  flush_interval => 10,                  # default: none
+  namespace      => 'foo',               # default: $> ($EUID)
+  group_names    => [qw(foo bar)],       # default: ['group']
  );
 
 Create a new Cache::Memcached::Managed object.  If there is less than two
@@ -1891,6 +1904,14 @@ The default default expiration is one day ('1D').  The default expiration will
 be used whenever no expiration has been specified with L<add>, L<decr>,
 L<incr>, L<replace> or L<set>.  The default expiration can be obtained
 with the L<expiration> method.
+
+=item flush_interval
+
+ flush_interval => 10,   # default: none
+
+The specification of the default interval between which memcached servers
+will be flushed with L<flush_all>.  No interval will be used by default
+if not specified.
 
 =item group_names
 
@@ -2081,9 +2102,26 @@ Returns the default expiration as (implicitely) specified with L<new>.
 
  my $flushed = $cache->flush_all;
 
+ my $flushed = $cache->flush_all( 30 ); # flush with 30 second intervals
+
 Initialize contents of all of the memcached backend servers of the
-L<"data server">.  Returns the number of memcached L<servers> that
+L<"data server">.  The input parameter specifies interval between flushes
+of backend memcached servers, default is the L<flush_interval> value
+implicitely) specified with L<new>.  Returns whether all memcached L<servers>
 were succesfully flushed.
+
+Please note that this method returns immediately after instructing each of
+the memcached servers.  Also note that the timed flush_all functionality is
+currently not part of the standard memcached API.  See the file
+"flush_interval.patch" for a patch for release 1.1.12 of the memcached
+software that implements timed flush_all functionality.
+
+=head2 flush_interval
+
+ my $interval = $cache->flush_interval;
+
+Returns the default flush interval values used with L<flush_all>, as
+(implicitely) specified with L<new>.
 
 =head2 get
 

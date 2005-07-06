@@ -43,6 +43,7 @@ can_ok( $class,qw(
  errors
  expiration
  flush_all
+ flush_interval
  get
  get_group
  get_multi
