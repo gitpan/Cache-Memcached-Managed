@@ -2,7 +2,7 @@ package Cache::Memcached::Managed;
 
 # Make sure we have version info for this module
 
-$VERSION = '0.10';
+$VERSION = '0.11';
 
 # Make sure we're as strict as possible
 # With as much feedback that we can get
@@ -25,7 +25,7 @@ use Scalar::Util qw(blessed reftype);
 
 my $expiration = '1D';
 my %expiration;
-my $delimiter = '#';
+my $default_del = '#';
 my $unique = 0;
 my $deadtime = 0;
 my $pingtime = 10;
@@ -75,9 +75,9 @@ sub new {
 # Set the delimiter if not set already
 # Set the namespace if not set already
 
-    $self{'expiration'}   = $expiration unless $self{'expiration'};
-    $self{'delimiter'}    = $delimiter  unless length( $self{'delimiter'}||'' );
-    $self{'namespace'}    = $>          unless defined $self{'namespace'};
+    $self{'expiration'} = $expiration  unless $self{'expiration'};
+    $self{'delimiter'}  = $default_del unless length( $self{'delimiter'}||'' );
+    $self{'namespace'}  = $>           unless defined $self{'namespace'};
 
 # Set the group names if not set already
 # Set the group names as hash for easy checking
@@ -564,12 +564,14 @@ sub get_multi {
     my %result;
 
 # Obtain the data server backend
+# Make sure we use the right delimiter
 # While we have a batch of data to fetch
 #  Perform the actual getting of the values
 #  For all of the values obtained this time
 #   Move the value to the result hash with just the ID as the key
 
     my $data = $self->data;
+    my $delimiter = $self->delimiter;
     while (my @todo = splice @data_key,0,$atatime) {
         my $hash = $data->get_multi( @todo );
         foreach (keys %{$hash}) {
@@ -639,11 +641,13 @@ sub group {
     return {} unless exists $self->{'_group_names'}->{$group_name};
 
 # Initialize result hash
+# Make sure we use the right delimiter
 # For all of the backend keys for this group
 #  Split out the parts
 #  Save the ID in the list for the key
 
     my %result;
+    my $delimiter = $self->delimiter;
     foreach ($self->_data_keys(
      $self->_directory_key( $namespace,$group_name,$group_id ) )) {
         my ($key,$id) = (split $delimiter)[2,3];
