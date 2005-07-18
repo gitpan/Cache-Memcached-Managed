@@ -7,7 +7,7 @@ $Foo::VERSION = 'Foo::VERSION';
 
 # Set up tests and strictness
 
-use Test::More tests => 182;
+use Test::More tests => 184;
 use strict;
 use warnings;
 
@@ -27,11 +27,13 @@ END {
 require 'testlib';
 my $class = 'Cache::Memcached::Managed';
 
-# Make sure we can load the module
-# Make sure that all of the methods can be executed
+# For both active and inactive version
+#  Make sure we can load the module
+#  Make sure that all of the methods can be executed
 
-require_ok( $class );
-can_ok( $class,qw(
+foreach ($class,$class.'::Inactive') {
+    require_ok( $_ );
+    can_ok( $_,qw(
  add
  data
  dead
@@ -62,6 +64,7 @@ can_ok( $class,qw(
  stop
  version
 ) );
+}
 
 # Obtain port and create config
 

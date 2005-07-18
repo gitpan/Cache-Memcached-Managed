@@ -2,7 +2,7 @@ package Cache::Memcached::Managed;
 
 # Make sure we have version info for this module
 
-$VERSION = '0.11';
+$VERSION = '0.12';
 
 # Make sure we're as strict as possible
 # With as much feedback that we can get
@@ -70,6 +70,15 @@ sub new {
 
     my $class = shift;
     my %self = @_ < 2 ? (data => (shift || '127.0.0.1:11211')) : @_;
+
+# If we want to force an inactive object
+#  Make sure we have the code to do it
+#  Return the inactive object
+
+    if (delete $self{'inactive'}) {
+        require Cache::Memcached::Managed::Inactive;
+        return Cache::Memcached::Managed::Inactive->new;
+    }
 
 # Set the default expiration if not set already
 # Set the delimiter if not set already
@@ -682,6 +691,14 @@ sub group_names {
     my $self = shift;
     return wantarray ? @{$self->{'group_names'}} : $self->{'_group_names'};
 } #group_names
+
+#---------------------------------------------------------------------------
+# inactive
+#
+#  IN: 1 instantiated object
+# OUT: 1 false
+
+sub inactive { undef } #inactive
 
 #---------------------------------------------------------------------------
 # incr
@@ -1822,10 +1839,13 @@ Transparent thread handling is still on the todo list.
   group_names    => [qw(foo bar)],       # default: ['group']
  );
 
-Create a new Cache::Memcached::Managed object.  If there is less than two
-input parameter, then it is assumed to be the value of the "data" field,
-with a default of '127.0.0.1:11211'.  If there are more than one input
-parameter, the parameters are assumed to be a hash with the following fields:
+ my $cache = Cache::Memcached::Managed->new( inactive => 1 );
+
+Create a new Cache::Memcached::Managed object.  If there are less than two
+input parameters, then the input parameter is assumed to be the value of
+the "data" field, with a default of '127.0.0.1:11211'.  If there are more
+than one input parameter, the parameters are assumed to be a hash with the
+following fields:
 
 =over 2
 
@@ -1939,6 +1959,16 @@ and does not interfere with other functions.  Currently disallowed name are:
 There is hardly any penalty for using a lot of different group names in itself.
 However, linking cached information to a lot of different groups B<does> have
 a penalty.
+
+=item inactive
+
+ inactive => 1,
+
+Indicate that the object is inactive.  If this is specified, an instantiated
+object is returned with the same API as Cache::Memcached::Managed, but which
+will not do anything.  Intended to be uses in situations where no active
+memcached servers can be reached: all code will then function as if there
+are no cached values in the cache.
 
 =item namespace
 
@@ -2308,6 +2338,13 @@ See L<"group management"> for more information about groups.
 Returns the valid group names as (implicitely) specified with L<new>.  Returns
 them in alphabetical order if called in a list context, or as a hash ref if
 called in scalar context.
+
+=head2 inactive
+
+ print "Inactive!\n" if $cache->inactive;
+
+Returns whether the cache object is inactive.  This happens if a true value
+is specified with L<new>.
 
 =head2 incr
 

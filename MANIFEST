@@ -8,7 +8,9 @@ VERSION
 Makefile.PL
 flush_interval.patch
 lib/Cache/Memcached/Managed.pm
+lib/Cache/Memcached/Managed/Inactive.pm
 t/001basic.t
+t/002inactive.t
 t/010fork.t
 t/020grab.t
 testlib

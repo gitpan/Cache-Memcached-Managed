@@ -1,3 +1,10 @@
+0.12	18 July 2005
+	Added "inactive" parameter to "new".  Added
+	Cache::Memcached::Managed::Inactive module for the "inactive"
+	functionality.  This allows you to make your code in such a way that
+	it doesn't make a difference whether or not there is an actual
+	memcached server available.
+
 0.11	8 July 2005
 	Fixed problem in "group" and "get_multi" when using a non-standard
 	delimiter.  Spotted by Torbjørn Køhle
