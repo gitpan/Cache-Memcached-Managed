@@ -2,7 +2,7 @@ package Cache::Memcached::Managed::Inactive;
 
 # Make sure we have version info for this module
 
-$VERSION = '0.12';
+$VERSION = '0.13';
 
 # Singleton object
 
@@ -102,8 +102,6 @@ Cache::Memcached::Managed::Inactive - inactive Cache::Memcache::Managed object
 =head1 DESCRIPTION
 
 Provides the same API as L<Cache::Memcached::Managed>, but doesn't do anything.
-
-=head1 REQUIRED MODULES
 
 =head1 AUTHOR
 

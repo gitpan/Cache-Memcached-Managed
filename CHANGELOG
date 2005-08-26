@@ -1,3 +1,7 @@
+0.13	23 August 2005
+	Added support for Cache::Memcached::Managed::Multi, to allow accessing
+	multiple managed servers at the same time.
+
 0.12	18 July 2005
 	Added "inactive" parameter to "new".  Added
 	Cache::Memcached::Managed::Inactive module for the "inactive"
