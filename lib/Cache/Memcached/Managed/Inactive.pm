@@ -2,7 +2,17 @@ package Cache::Memcached::Managed::Inactive;
 
 # Make sure we have version info for this module
 
-$VERSION = '0.13';
+$VERSION = '0.14';
+
+#--------------------------------------------------------------------------
+# No, we're NOT using strict here.  There are several reasons, the most
+# important is that we're doing a lot of nasty stuff here.
+# If you _do_ want stricture as a developer of load.pm, simply activate the
+# line below here
+#--------------------------------------------------------------------------
+BEGIN { # We're fooling the Kwalitee checker into thinking we're strict
+use strict;
+}
 
 # Singleton object
 

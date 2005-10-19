@@ -2,7 +2,7 @@ package Cache::Memcached::Managed;
 
 # Make sure we have version info for this module
 
-$VERSION = '0.13';
+$VERSION = '0.14';
 
 # Make sure we're as strict as possible
 # With as much feedback that we can get

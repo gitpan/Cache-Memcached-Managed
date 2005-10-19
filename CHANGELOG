@@ -1,3 +1,7 @@
+0.14	19 October 2005
+	Update VERSION file (forgotten to do that in 0.13)
+	Added fix for missing Kwalitee point for not using 'strict'
+
 0.13	23 August 2005
 	Added support for Cache::Memcached::Managed::Multi, to allow accessing
 	multiple managed servers at the same time.
