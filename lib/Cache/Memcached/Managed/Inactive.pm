@@ -2,7 +2,7 @@ package Cache::Memcached::Managed::Inactive;
 
 # Make sure we have version info for this module
 
-$VERSION = '0.14';
+$VERSION = '0.15';
 
 #--------------------------------------------------------------------------
 # No, we're NOT using strict here.  There are several reasons, the most

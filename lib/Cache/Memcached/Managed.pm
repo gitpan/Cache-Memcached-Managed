@@ -2,7 +2,7 @@ package Cache::Memcached::Managed;
 
 # Make sure we have version info for this module
 
-$VERSION = '0.14';
+$VERSION = '0.15';
 
 # Make sure we're as strict as possible
 # With as much feedback that we can get
@@ -31,6 +31,7 @@ my $deadtime = 0;
 my $pingtime = 10;
 my $atatime  = 256;
 my $server = eval { `uname -n` } || 'unknown'; chomp $server;
+my $_oneline;
 
 # At compile time
 #  Create simple accessors
@@ -1517,12 +1518,18 @@ sub _oneline {
     my ($self,$cache,$send,$bucket,$expect) = @_;
     return unless my $socket = $cache->get_sock( [$bucket || 0,0] );
 
+# Make sure we can call a "_oneline" compatible method
+
+    $_oneline ||= $cache->can( '_oneline' ) || $cache->can( '_write_and_read' )
+      or die "Unsupported version of ".(blessed $cache)."\n";
+
 # Send the request and obtain the response
 # Return response if we don't want to check here
 # Return whether result was expected
 
-    my $response = defined $send ?
-     $cache->_oneline( $socket,$send."\r\n" ) : $cache->_oneline( $socket );
+    my $response = defined $send
+     ? $_oneline->( $cache, $socket, $send."\r\n" )
+     : $_oneline->( $cache, $socket );
     return $response unless defined $expect;
     $response and $expect."\r\n" eq $response;
 } #_oneline

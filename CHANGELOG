@@ -1,3 +1,8 @@
+0.15	11 June 2006
+	Cache::Memcached changed some of its internals with version 1.16.
+	This version now supports both versions before and after.  Spotted
+	by islue.
+
 0.14	19 October 2005
 	Update VERSION file (forgotten to do that in 0.13)
 	Added fix for missing Kwalitee point for not using 'strict'
