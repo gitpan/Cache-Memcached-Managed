@@ -1,3 +1,17 @@
+0.16	2 February 2007
+	Updated the test-suite to support version 1.2.1 of memcached.  Brought
+	code of test-suite up to PBP standards (code itself will follow in a
+	later version).
+
+	Load testing is no longer skipped on OS X, as the latest libevent
+	/ memcached combo seems to compile and install cleanly with all
+	necessary workarounds installed automagically.  Instead a warning
+	is displayed.
+
+	Changed documentation of "flush_all" to point out that the
+	"flush_interval.patch" is no longer necessary when using memcached
+	1.2.1.
+
 0.15	11 June 2006
 	Cache::Memcached changed some of its internals with version 1.16.
 	This version now supports both versions before and after.  Spotted

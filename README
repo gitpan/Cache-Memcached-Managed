@@ -1,6 +1,7 @@
 README for Cache::Memcached::Managed
 
-Copyright (c) 2005 BOOKINGS
+Copyright (c) 2005 - 2006 BOOKINGS
+Copyright (c) 2007 BOOKING.COM
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -15,6 +16,9 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
+Version:
+ 0.16
 
 Required Modules:
  Cache::Memcached (any)

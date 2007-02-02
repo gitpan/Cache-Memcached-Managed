@@ -1,44 +1,30 @@
 
 # Set up tests and strictness
-
 use Test::More tests => 68;
 use strict;
 use warnings;
 
 # Make sure we have all the support routines
-# Initialize class for ease of use
-# Initialize class for inactive version
-
 require 'testlib';
 my $class    = 'Cache::Memcached::Managed';
 my $inactive = $class.'::Inactive';
 
 # Make sure we can load the module, both active and inactive
-
 require_ok( $_ ) foreach 'Cache::Memcached',$class,$inactive;
 
 # Create inactive cache object indirectly
-# Make sure we got right object
-# Make sure that all of the methods can be executed
-
 my $cache = $class->new( inactive => 1 );
 isa_ok( $cache,$inactive,"Check whether object #1 ok" );
-check_methods( $cache );
+check_methods($cache);
 
 # Create inactive cache object directly
-# Make sure we got right object
-# Make sure that all of the methods can be executed
-
 $cache = $inactive->new;
 isa_ok( $cache,$inactive,"Check whether object #2 ok" );
 check_methods( $cache );
 
 # Create a cache object with default memcached servers
-# Make sure we got right object
-# Make sure that all of the methods can be executed
-
 $cache = $class->new;
-isa_ok( $cache,$class,"Check whether object #3 ok" );
+isa_ok( $cache, $class, "Check whether object #3 ok" );
 #check_methods( $cache );
 
 #-------------------------------------------------------------------------
@@ -49,12 +35,10 @@ isa_ok( $cache,$class,"Check whether object #3 ok" );
 #  IN: 1 instantiated object
 
 sub check_methods {
+    my ($cache) = @_;
 
-# Obtain the object
-# Check methods returning undef always
-
-    my $cache = shift;
-    ok( !defined( $cache->$_ ),"Check result of inactive method $_" )
+    # Check methods returning undef always
+    ok( !defined( $cache->$_ ), "Check result of inactive method $_" )
      foreach qw(
  add
  data
@@ -76,9 +60,8 @@ sub check_methods {
  stop
     );
 
-# Check all methods that always return a hash ref
-
-    is_deeply( $cache->$_,{},"Check result of inactive method $_" )
+    # Check all methods that always return a hash ref
+    is_deeply( $cache->$_, {}, "Check result of inactive method $_" )
      foreach qw(
  errors
  get_group
@@ -89,19 +72,18 @@ sub check_methods {
  version
     );
 
-# Check all methods returning a list in array context
-
-    is_deeply( [$cache->$_],[],"Check result of list inactive method $_" )
+    # Check all methods returning a list in array context
+    is_deeply( [$cache->$_], [], "Check result of list inactive method $_" )
      foreach qw(
  dead
  group_names
  servers
     );
 
-# Check all methods returning a hash ref in scalar context
-
-    is_deeply( scalar $cache->$_,{},"Check result of scalar inactive method $_")
-     foreach qw(
+    # Check all methods returning a hash ref in scalar context
+    is_deeply( scalar $cache->$_, {},
+      "Check result of scalar inactive method $_")
+        foreach qw(
  dead
  group_names
  servers

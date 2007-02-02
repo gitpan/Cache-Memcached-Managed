@@ -2,7 +2,7 @@ package Cache::Memcached::Managed;
 
 # Make sure we have version info for this module
 
-$VERSION = '0.15';
+$VERSION = '0.16';
 
 # Make sure we're as strict as possible
 # With as much feedback that we can get
@@ -1579,6 +1579,10 @@ Cache::Memcached::Managed - provide API for managing cached information
  my $value = $cache->get( id  => $id,
                           key => $key );
 
+=head1 VERSION
+
+This documentation describes version 0.16.
+
 =head1 DIFFERENCES FROM THE Cache::Memcached API
 
 The Cache::Memcached::Managed module provides an API to values, cached in
@@ -2152,10 +2156,11 @@ implicitely) specified with L<new>.  Returns whether all memcached L<servers>
 were succesfully flushed.
 
 Please note that this method returns immediately after instructing each of
-the memcached servers.  Also note that the timed flush_all functionality is
-currently not part of the standard memcached API.  See the file
-"flush_interval.patch" for a patch for release 1.1.12 of the memcached
-software that implements timed flush_all functionality.
+the memcached servers.  Also note that the timed flush_all functionality has
+only recently become part of the standard memcached API (starting from
+publicly released version C<1.2.1>). See the file "flush_interval.patch" for
+a patch for release 1.1.12 of the memcached software that implements timed
+flush_all functionality.
 
 =head2 flush_interval
 
@@ -2791,7 +2796,8 @@ CPAN, for which Elizabeth Mattijsen would like to express her gratitude.
 
 =head1 COPYRIGHT
 
-(C) 2005 BOOKINGS
+(C) 2005 - 2006 BOOKINGS
+(C) 2007 BOOKING.COM
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

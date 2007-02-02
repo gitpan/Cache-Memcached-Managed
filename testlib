@@ -1,15 +1,12 @@
 
-# Make sure we can do sockets
-
+# make sure we can do sockets
 use IO::Socket ();
 use Data::Dumper ();
 
-# Some local lexicals
-
+# some local lexicals
 my $text;
 
-# Satisy -require-
-
+# satisy -require-
 1;
 
 #------------------------------------------------------------------------
@@ -21,26 +18,21 @@ my $text;
 # OUT: 1 random port number
 
 sub anyport {
+    my ($self) = @_;
 
-# Obtain the object
-# Initialize the port
-# If we can create a socket on a random port
-#  Obtain the port (socket will be freed when if goes out of scope)
+    # attempt to obtain a port to work on
+    my $port = '';
+    if (my $socket = IO::Socket::INET->new(
+      Listen    => 5,
+      LocalAddr => (shift || 'localhost'),
+    ) ) {
+        $port = $socket->sockport;
+    }
 
-  my $self = shift;
-  my $port = '';
-  if (my $socket = IO::Socket::INET->new(
-   Listen    => 5,
-   LocalAddr => (shift || 'localhost'),
-  )) {
-    $port = $socket->sockport;
-  }
+    # make sure the system's freed up the port
+    sleep 1;
 
-# Make sure the system's freed up the port
-# Return it
-
-  sleep( 1 );
-  return $port;
+    return $port;
 } #anyport
 
 #------------------------------------------------------------------------
@@ -54,18 +46,18 @@ sub anyport {
 
 sub ft {
 
-# If we're completed
-#  Return what we got
-# Elseif we're getting a test
-#  Add result of test
-# Else (we're initializing)
-#  Initialize text
-
-    if (defined wantarray) {
+    # completed, return what we got
+    if ( defined wantarray ) {
         return $text;
-    } elsif (@_) {
+    }
+
+    # we're getting a test, return its result
+    elsif (@_) {
         $text .= ($_[0] || '')."#$_[1]\n";
-    } else {
+    }
+
+    # we're initializing
+    else {
         $text = '';
     }
 } #ft
@@ -79,13 +71,13 @@ sub ft {
 
 sub pft {
 
-# Obtain handle for reading file
-# Process all lines
-# Close the file
-# Remove the file
+    # open the file
+    open my $handle, $_[0] or die "Could not open '$_[0]': $!";
 
-    open my $handle,$_[0] or die;
+    # process all lines
     chomp,&ok( split "#" ) while <$handle>;
+
+    # deny all further knowledge
     close $handle;
     unlink $_[0];
 } #pft
