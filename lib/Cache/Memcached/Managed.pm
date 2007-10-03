@@ -2,7 +2,7 @@ package Cache::Memcached::Managed;
 
 # Make sure we have version info for this module
 
-$VERSION = '0.16';
+$VERSION = '0.17';
 
 # Make sure we're as strict as possible
 # With as much feedback that we can get
@@ -1222,7 +1222,9 @@ sub _do {
 # Obtain the parameter hash
 # Create the key, removing key specification on the fly
 
-    my %param = @_ > 2 ? @_ : (value => shift, id => shift);
+    my %param = @_ > 3
+      ? @_ 
+      :  ( value => shift, id => shift, expiration => shift );
     my $key = $self->_create_key( delete( $param{'key'} ),3 );
 
 # Obtain the ID, removing it on the fly
@@ -1581,7 +1583,7 @@ Cache::Memcached::Managed - provide API for managing cached information
 
 =head1 VERSION
 
-This documentation describes version 0.16.
+This documentation describes version 0.17.
 
 =head1 DIFFERENCES FROM THE Cache::Memcached API
 
@@ -2000,7 +2002,9 @@ The following object methods are available (in alphabetical order):
 
  $cache->add( $value );
 
- $cache->add( $value,$id );
+ $cache->add( $value, $id );
+
+ $cache->add( $value, $id, $expiration );
 
  $cache->add( value      => $value,
               id         => $id,     # optional
@@ -2038,7 +2042,7 @@ were found for each memcached server.
 
  $cache->decr( $value );
 
- $cache->decr( $value,$id );
+ $cache->decr( $value, $id, $expiration );
 
  $cache->decr( value      => $value,  # default: 1
                id         => $id,     # default: key only
@@ -2364,7 +2368,9 @@ is specified with L<new>.
 
  $cache->incr( $value );
 
- $cache->incr( $value,$id );
+ $cache->incr( $value, $id );
+
+ $cache->incr( $value, $id, $expiration );
 
  $cache->incr( value      => $value,  # default: 1
                id         => $id,     # default: key only
@@ -2396,7 +2402,9 @@ Obtain the default namespace, as (implicitely) specified with L<new>.
 
  $cache->replace( $value );
 
- $cache->replace( $value,$id );
+ $cache->replace( $value, $id );
+
+ $cache->replace( $value, $id, $expiration );
 
  $cache->replace( value      => $value,  # undef
                   id         => $id,     # default: key only
@@ -2441,6 +2449,8 @@ not responding.
 
  $cache->set( $value,$id );
 
+ $cache->set( $value, $id, $expiration );
+
  $cache->set( value      => $value,  # default: undef
               id         => $id,     # default: key only
               key        => $key,    # default: caller environment
@@ -2466,6 +2476,11 @@ The value to set in the cache.  Defaults to C<undef>.
 
 The L<ID> to be used to identify the value.  Defaults to no ID (then uses
 L<key> only).
+
+=item 3 expiration
+
+The expiration of the value.  Defaults to the value as specified with
+L<expiration> for the L<key>.
 
 =back
 
@@ -2673,6 +2688,33 @@ cron jobs (which usually run under a different user id) will need to set
 the namespace to the user id of the process storing information into the
 cache.
 
+=head2 Incompatibility with Cache module
+
+John Goulah pointed out to me that there is an inconsistency with unnamed
+parameter passing in respect to the L<Cache> module.  Specifically, the
+C<set> method:
+
+ $c->set( $key, $data, [ $expiry ] );
+
+is incompatible with this module's C<set> method:
+
+ $cache->set;
+
+ $cache->set( $value );
+
+ $cache->set( $value, $id );
+
+ $cache->set( $value, $id, $expiration );
+
+The reason for this simple: in this module, B<all> parameters are optional.
+So you can specify just a value: the key will be generated for you from the
+caller environment.  Since I felt at the time that you would more likely
+specify a value than a key, I made that the first parameter (as opposed to
+the C<set> method of L<Cache>.  Changing to the format as imposed by the
+L<Cache> module, is not an option at this moment in the lifetime of this
+module, as it would break existing code (the same way as it breaks the
+test-suite).
+
 =head1 THEORY OF OPERATION
 
 The group management is implemented by keeping a type of directory information
@@ -2796,7 +2838,7 @@ CPAN, for which Elizabeth Mattijsen would like to express her gratitude.
 
 =head1 COPYRIGHT
 
-(C) 2005 - 2006 BOOKINGS
+(C) 2005, 2006 BOOKINGS
 (C) 2007 BOOKING.COM
 
 This program is free software; you can redistribute it and/or modify

@@ -18,20 +18,18 @@ my $text;
 # OUT: 1 random port number
 
 sub anyport {
-    my ($self) = @_;
 
     # attempt to obtain a port to work on
     my $port = '';
     if (my $socket = IO::Socket::INET->new(
       Listen    => 5,
-      LocalAddr => (shift || 'localhost'),
+      LocalAddr => (shift || '127.0.0.1'),
     ) ) {
         $port = $socket->sockport;
     }
 
     # make sure the system's freed up the port
     sleep 1;
-
     return $port;
 } #anyport
 

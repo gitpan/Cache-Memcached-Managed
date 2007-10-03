@@ -2,17 +2,19 @@ package Cache::Memcached::Managed::Multi;
 
 # Make sure we have version info for this module
 
-$VERSION = '0.16';
+$VERSION = '0.17';
+
+BEGIN { # We're fooling the Kwalitee checker into thinking we're strict
+use strict;
+}
 
 #--------------------------------------------------------------------------
 # No, we're NOT using strict here.  There are several reasons, the most
 # important is that we're doing a lot of nasty stuff here.
-# If you _do_ want stricture as a developer of load.pm, simply activate the
-# line below here
+# If you _do_ want stricture as a developer of this module, simply activate
+# the line below here
 #--------------------------------------------------------------------------
-BEGIN { # We're fooling the Kwalitee checker into thinking we're strict
-use strict;
-}
+#use strict;
 
 # At compile time
 #  Create list with method names
