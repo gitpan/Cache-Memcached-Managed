@@ -1,3 +1,9 @@
+0.18	7 October 2007
+	Changed Makefile.PL to quit before attempting to install to kill all
+	cpan-tester messages where Cache::Memcached::Managed is being tested
+	without "memcached" being available and executable.  No changes made
+	to the code.
+
 0.17	3 October 2007
 	Methods "add", "decr", "incr", "replace" and "set" now accept a third
 	unnamed parameter for expiration.  Suggested by John Goulah.

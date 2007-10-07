@@ -1,4 +1,18 @@
+
 use strict;
+
+BEGIN {
+    if ( open my $memcached, "memcached -i |" ) {
+        chomp( my $header = <$memcached> );
+        print "Using $header for tests!\n";
+    }
+
+    else {
+        print "No executable memcached found: $!\n";
+        exit 0;
+    }
+}
+
 use ExtUtils::MakeMaker;
 eval "use Devel::Required";
 
