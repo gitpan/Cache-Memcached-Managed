@@ -1,3 +1,7 @@
+0.19	8 October 2007
+	Argh, 0.18 broke on 5.005 because of new style open().  Now rephrased	
+	to old-style open() using globs.
+
 0.18	7 October 2007
 	Changed Makefile.PL to quit before attempting to install to kill all
 	cpan-tester messages where Cache::Memcached::Managed is being tested

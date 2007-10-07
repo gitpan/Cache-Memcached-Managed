@@ -2,7 +2,7 @@ package Cache::Memcached::Managed;
 
 # Make sure we have version info for this module
 
-$VERSION = '0.18';
+$VERSION = '0.19';
 
 # Make sure we're as strict as possible
 # With as much feedback that we can get
@@ -1583,7 +1583,7 @@ Cache::Memcached::Managed - provide API for managing cached information
 
 =head1 VERSION
 
-This documentation describes version 0.18.
+This documentation describes version 0.19.
 
 =head1 DIFFERENCES FROM THE Cache::Memcached API
 

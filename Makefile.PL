@@ -2,8 +2,8 @@
 use strict;
 
 BEGIN {
-    if ( open my $memcached, "memcached -i |" ) {
-        chomp( my $header = <$memcached> );
+    if ( open MEMCACHED, "memcached -i |" ) {
+        chomp( my $header = <MEMCACHED> );
         print "Using $header for tests!\n";
     }
 
