@@ -1,3 +1,8 @@
+0.20	19 May 2008
+	Added preliminary "memcached_class" parameter to "new", to allow other
+	implementations of Cache::Memcached (such as Cache::Memcached::Fast)
+	to be used.
+
 0.19	8 October 2007
 	Argh, 0.18 broke on 5.005 because of new style open().  Now rephrased	
 	to old-style open() using globs.

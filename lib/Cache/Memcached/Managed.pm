@@ -2,7 +2,7 @@ package Cache::Memcached::Managed;
 
 # Make sure we have version info for this module
 
-$VERSION = '0.19';
+$VERSION = '0.20';
 
 # Make sure we're as strict as possible
 # With as much feedback that we can get
@@ -96,6 +96,10 @@ sub new {
      [$self{'group_names'} ? sort @{$self{'group_names'}} : 'group'];
     $self{'_group_names'} = {map {$_ => undef} @{$self{'group_names'}}};
 
+    # obtain client class
+    my $memcached_class = $self{memcached_class} ||= 'Cache::Memcached';
+    die $@ if !eval "require $memcached_class; 1";
+
 # For both backends we need
 #  Reloop if there is nothing there
 #  Reloop if we already have blessed object
@@ -106,7 +110,6 @@ sub new {
     foreach (qw(data directory)) {
         next unless $self{$_};
         next if blessed $self{$_};
-        require Cache::Memcached;
         my $type = reftype $self{$_};
         my $parameters;
 
@@ -129,7 +132,7 @@ sub new {
         } else {
             die "Don't know how to handle '$self{$_}' as server specification";
         }
-        $self{$_} = Cache::Memcached->new( $parameters );
+        $self{$_} = $memcached_class->new( $parameters );
     }
 
 # Quit now if no data server available
@@ -207,7 +210,7 @@ sub dead {
 
     my @dead;
     foreach ($self->servers) {
-        my $server = Cache::Memcached->new( {servers => [$_]} );
+        my $server = $self->{memcached_class}->new( {servers => [$_]} );
         my $fetched = eval {
             local $SIG{ALRM} = sub { die "timed out\n" };
             alarm $timeout;
@@ -1583,7 +1586,7 @@ Cache::Memcached::Managed - provide API for managing cached information
 
 =head1 VERSION
 
-This documentation describes version 0.19.
+This documentation describes version 0.20.
 
 =head1 DIFFERENCES FROM THE Cache::Memcached API
 
@@ -1850,6 +1853,8 @@ Transparent thread handling is still on the todo list.
   flush_interval => 10,                  # default: none
   namespace      => 'foo',               # default: $> ($EUID)
   group_names    => [qw(foo bar)],       # default: ['group']
+
+  memcached_class => 'Cached::Memcached::Fast', # default: 'Cache::Memcached'
  );
 
  my $cache = Cache::Memcached::Managed->new( inactive => 1 );
@@ -1982,6 +1987,17 @@ object is returned with the same API as Cache::Memcached::Managed, but which
 will not do anything.  Intended to be uses in situations where no active
 memcached servers can be reached: all code will then function as if there
 are no cached values in the cache.
+
+=item memcached_class
+
+  memcached_class => 'Cached::Memcached::Fast',
+
+By default, this module uses the L<Cache::Memcached> class as a C<memcached>
+client.  Recently, other implementations have been developed, such as
+L<Cache::Memcached::Fast>, that are considered to be API compatible.  To be
+able to use these other implementation of the memcached client, you can
+specify the name of the class to be used.  By default, C<Cache::Memcached>
+will be assumed: the module will be loaded automatically if not loaded already.
 
 =item namespace
 
@@ -2839,7 +2855,7 @@ CPAN, for which Elizabeth Mattijsen would like to express her gratitude.
 =head1 COPYRIGHT
 
 (C) 2005, 2006 BOOKINGS
-(C) 2007 BOOKING.COM
+(C) 2007, 2008 BOOKING.COM
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
