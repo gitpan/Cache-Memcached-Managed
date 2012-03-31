@@ -1,3 +1,20 @@
+0.21	31 March 2012
+	Added spelling fixes as suggested by Nicholas Bamber, as suggested
+	by Gregor Herrmann.  Finally released to CPAN, thanks to the impetus
+	given by the QA Hackathon 2012 in Paris.
+
+	24 May 2008
+	Shielded some code from using Cache::Memcached specific internal
+	methods, which do not appear to exist in Cache::Memcached::Fast.
+	This at least let the test-suite complete, albeit with errors if
+	the Cache::Memcached::Fast class is being used.  This probably will
+	need some more work and some direct interaction with the developers
+	of Cache::Memcached::Fast.  Testing with a class other than
+	Cache::Memcached can be accomplished by setting the environment
+	variable CACHE_MEMCACHE to the intended class, e.g.
+
+          $ CACHE_MEMCACHED=Cache::Memcached::Fast make test
+
 0.20	19 May 2008
 	Added preliminary "memcached_class" parameter to "new", to allow other
 	implementations of Cache::Memcached (such as Cache::Memcached::Fast)

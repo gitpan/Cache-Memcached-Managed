@@ -65,7 +65,11 @@ ok( $port, "Check whether we have a port to work on" );
 my $config = "127.0.0.1:$port";
 
 # Create a cache object
-$cache = $class->new( $config );
+my $memcached_class = $ENV{CACHE_MEMCACHED} || 'Cache::Memcached';
+$cache = $class->new(
+  data            => $config,
+  memcached_class => $memcached_class,
+);
 isa_ok( $cache,$class, "Check whether object ok" );
 
 # Start the server, skip further tests if failed

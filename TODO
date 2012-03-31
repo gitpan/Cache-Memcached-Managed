@@ -11,3 +11,7 @@ Test for get_group in list context
 Test all possible expirations
 
 Test for non-standard delimiters
+
+Test for "memcached_class" parameter to "new"
+
+Bring code more up to PBP
