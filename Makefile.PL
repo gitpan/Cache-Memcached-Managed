@@ -21,6 +21,7 @@ WriteMakefile (
  AUTHOR		=> 'Elizabeth Mattijsen (liz@dijkmat.nl)',
  ABSTRACT	=> 'provide API for managing cached information',
  VERSION_FROM	=> 'lib/Cache/Memcached/Managed.pm',
+ LICENSE	=> 'gpl',
 
  PREREQ_PM	=> {qw(
                     Cache::Memcached	0

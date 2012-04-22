@@ -16,3 +16,4 @@ t/010fork.t
 t/020grab.t
 testlib
 META.yml                                 Module meta-data (added by MakeMaker)
+META.json                                Module JSON meta-data (added by MakeMaker)

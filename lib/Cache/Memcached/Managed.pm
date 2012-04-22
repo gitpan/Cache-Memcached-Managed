@@ -2,7 +2,7 @@ package Cache::Memcached::Managed;
 
 # Make sure we have version info for this module
 
-$VERSION = '0.21';
+$VERSION= '0.22';
 
 # Make sure we're as strict as possible
 # With as much feedback that we can get
@@ -1620,7 +1620,7 @@ Cache::Memcached::Managed - provide API for managing cached information
 
 =head1 VERSION
 
-This documentation describes version 0.21.
+This documentation describes version 0.22.
 
 =head1 DIFFERENCES FROM THE Cache::Memcached API
 
@@ -2207,7 +2207,7 @@ Initialize contents of all of the memcached backend servers of the
 L<"data server">.  The input parameter specifies interval between flushes
 of backend memcached servers, default is the L<flush_interval> value
 implicitely) specified with L<new>.  Returns whether all memcached L<servers>
-were succesfully flushed.
+were successfully flushed.
 
 Please note that this method returns immediately after instructing each of
 the memcached servers.  Also note that the timed flush_all functionality has
@@ -2881,7 +2881,7 @@ essentially starting again at 1.
 
 =head1 HISTORY
 
-This module started live as an internal module at BOOKINGS Online Hotel
+This module started life as an internal module at BOOKINGS Online Hotel
 Reservation, the foremost European on-line hotel booking portal.  With
 approval and funding of Bookings, this module was generalized and put on
 CPAN, for which Elizabeth Mattijsen would like to express her gratitude.
@@ -2890,6 +2890,7 @@ CPAN, for which Elizabeth Mattijsen would like to express her gratitude.
 
 (C) 2005, 2006 BOOKINGS
 (C) 2007, 2008 BOOKING.COM
+(C) 2012 Elizabeth Mattijsen
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

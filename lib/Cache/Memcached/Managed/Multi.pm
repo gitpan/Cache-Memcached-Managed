@@ -2,7 +2,7 @@ package Cache::Memcached::Managed::Multi;
 
 # Make sure we have version info for this module
 
-$VERSION = '0.21';
+$VERSION= '0.22';
 
 BEGIN { # We're fooling the Kwalitee checker into thinking we're strict
 use strict;
