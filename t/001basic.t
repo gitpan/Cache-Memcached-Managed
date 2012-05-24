@@ -74,7 +74,7 @@ isa_ok( $cache,$class, "Check whether object ok" );
 
 # Start the server, skip further tests if failed
 SKIP: {
-skip( "Memcached server not started",177 ) if !$cache->start;
+skip( "Memcached server not started", 169 ) if !$cache->start;
 sleep 2; # let the server warm up
 diag("\nStarted memcached server");
 
@@ -171,7 +171,7 @@ foreach my $reset ( 0 .. 1 ) {
       "Check if simple getting with namespace fails" );
 
     # Check expiration
-    ok( $cache->set( value => $value, expiration => '3s' ),
+    ok( $cache->set( value => $value, expiration => '3' ),
       "Simple value for expiration check" );
     is( $cache->get, $value,
       "Check if simple getting before expiration works" );

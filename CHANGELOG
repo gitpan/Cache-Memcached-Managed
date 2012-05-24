@@ -1,21 +1,35 @@
+0.24    24 May 2012
+        Removed forced die from Makefile.PL if memcached is not available.
+        All relevant tests will be skipped, allowing installs on machines
+        where memcached itself is not installed.  Your Mileage May Vary.
+        RT #52678
+
+        Added clarification about using version as floating points, and that
+        it is better to use it as a string. RT #29224
+
+        Fixed problem with expiration just specified as number of seconds.
+        Added tests for expiration specification, just to be sure.  RT #49913
+
 0.23    24 May 2012
         Fixed thinko reported by James M.  Added tests to test for thinko.
         Also fixed specifying a blessed object as data / directory source,
         although this may well break with non-hashref based implemenations.
         But it didn't work before anyway, so it at least now matches the
-        documentation.
+        documentation.  RT #77389.
 
         Ensured it runs with 5.16.0, threaded and unthreaded.
 
 0.22    22 April 2012
         Some more spelling fixes.  Added license information + adapted copyright
         message to reflect that I've taken it back in maintenance in my own
-        time again.
+        time again. RT #75346
 
 0.21    31 March 2012
         Added spelling fixes as suggested by Nicholas Bamber, as suggested
-        by Gregor Herrmann.  Finally released to CPAN, thanks to the impetus
-        given by the QA Hackathon 2012 in Paris.
+        by Gregor Herrmann. RT #69648
+        
+        Finally released to CPAN, thanks to the impetus given by the QA
+        Hackathon 2012 in Paris.
 
         24 May 2008
         Shielded some code from using Cache::Memcached specific internal

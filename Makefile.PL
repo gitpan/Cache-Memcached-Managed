@@ -9,7 +9,7 @@ BEGIN {
 
     else {
         print "No executable memcached found: $!\n";
-        exit 0;
+        print "Many tests will fail, install can only be forced!\n";
     }
 }
 

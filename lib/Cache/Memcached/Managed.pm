@@ -2,7 +2,7 @@ package Cache::Memcached::Managed;
 
 # Make sure we have version info for this module
 
-$VERSION= '0.23';
+$VERSION= '0.24';
 
 # Make sure we're as strict as possible
 # With as much feedback that we can get
@@ -1368,8 +1368,12 @@ sub _expiration2seconds {
 # Return now if invalid characters found
 
     my $expiration = $_[1];
-    return unless defined $expiration;
-    return unless $expiration =~ m#^[sSmMhHdDwW\d]+$#;
+    return if !defined $expiration;
+    return if $expiration !~ m#^[sSmMhHdDwW\d]+$#;
+
+# Just a second specification
+
+    return $expiration if $expiration !~ m#\D#;
 
 # Convert seconds into seconds
 # Convert minutes into seconds
@@ -1626,7 +1630,7 @@ Cache::Memcached::Managed - provide API for managing cached information
  $cache->set( value      => $value,
               id         => $id,
               key        => $key,
-              version    => 1.1,
+              version    => "1.1",
               namespace  => 'foo',
               expiration => '1D', );
 
@@ -1775,6 +1779,10 @@ data format changes.
 A specific version can be specified with each of the L<add>, L<decr>,
 L<get>, L<get_multi>, L<incr>, L<replace> and L<set> to indicate the link
 with the group of the information being cached.
+
+ Please always use a string as the version indicator.  Using floating point
+ values may yield unexpected results, where B<1.0> would actually use B<1>
+ as the version.
 
 =head2 namespace management
 
@@ -2248,7 +2256,7 @@ Returns the default flush interval values used with L<flush_all>, as
 
  my $value = $cache->get( id        => $id,     # optional
                           key       => $key,    # optional
-                          version   => '1.0',   # optional
+                          version   => '1.1',   # optional
                           namespace => 'foo',   # optional
                         );
 
@@ -2443,7 +2451,7 @@ is specified with L<new>.
                id         => $id,     # default: key only
                key        => $key,    # default: caller environment
                expiration => '3H',    # default: $cache->expiration
-               version    => '1.0',   # default: key environment
+               version    => '1.1',   # default: key environment
                namespace  => 'foo',   # default: $cache->namespace
                group      => 'bar',   # default: none
              );
@@ -2477,7 +2485,7 @@ Obtain the default namespace, as (implicitely) specified with L<new>.
                   id         => $id,     # default: key only
                   key        => $key,    # default: caller environment
                   expiration => '3H',    # default: $cache->expiration
-                  version    => '1.0',   # default: key environment
+                  version    => '1.1',   # default: key environment
                   namespace  => 'foo',   # default: $cache->namespace
                 );
 
@@ -2522,7 +2530,7 @@ not responding.
               id         => $id,     # default: key only
               key        => $key,    # default: caller environment
               expiration => '3H',    # default: $cache->expiration
-              version    => '1.0',   # default: key environment
+              version    => '1.1',   # default: key environment
               namespace  => 'foo',   # default: $cache->namespace
               group      => 'bar',   # default: none
             );
