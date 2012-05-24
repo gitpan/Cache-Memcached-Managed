@@ -15,16 +15,20 @@ BEGIN {
 
 use ExtUtils::MakeMaker;
 eval "use Devel::Required";
+eval "use Devel::Required pod => [ qw(
+  lib/Cache/Managed.pm
+  lib/Cache/Managed/Inactive.pm
+  lib/Cache/Managed/Multi.pm
+) ]";
 
 WriteMakefile (
- NAME		=> "Cache::Memcached::Managed",
- AUTHOR		=> 'Elizabeth Mattijsen (liz@dijkmat.nl)',
- ABSTRACT	=> 'provide API for managing cached information',
- VERSION_FROM	=> 'lib/Cache/Memcached/Managed.pm',
- LICENSE	=> 'gpl',
+ NAME          => "Cache::Memcached::Managed",
+ AUTHOR        => 'Elizabeth Mattijsen (liz@dijkmat.nl)',
+ ABSTRACT      => 'provide API for managing cached information',
+ VERSION_FROM  => 'lib/Cache/Memcached/Managed.pm',
+ LICENSE       => 'gpl',
 
- PREREQ_PM	=> {qw(
-                    Cache::Memcached	0
-		    Scalar::Util	0
-                   )},
+ PREREQ_PM     => { qw(
+                    Cache::Memcached    0
+                  ) },
 );

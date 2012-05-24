@@ -14,6 +14,7 @@ t/002inactive.t
 t/003multi.t
 t/010fork.t
 t/020grab.t
+t/030configs.t
 testlib
 META.yml                                 Module meta-data (added by MakeMaker)
 META.json                                Module JSON meta-data (added by MakeMaker)

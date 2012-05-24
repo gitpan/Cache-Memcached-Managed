@@ -2,7 +2,7 @@ package Cache::Memcached::Managed;
 
 # Make sure we have version info for this module
 
-$VERSION= '0.22';
+$VERSION= '0.23';
 
 # Make sure we're as strict as possible
 # With as much feedback that we can get
@@ -92,14 +92,25 @@ sub new {
     my @all_servers;
   BACKEND:
     foreach ( qw( data directory ) ) {
+
+        # nothing to do
         my $spec = $self{$_};
         next BACKEND if !$spec;
-        next BACKEND if blessed $spec;
+        
+        # giving an existing object
+        if ( blessed $spec ) {
+
+            # unfortunately, there does not seem to be an API for this
+            if ( my $servers = $spec->{servers} ) {
+                push @all_servers, @{$servers};
+                next BACKEND;
+            }
+        }
 
         # assume a single server spec
         my $parameters;
         my $type = reftype $spec;
-        if ( !defined $type ) {
+        if ( !$type ) {
             my @servers = split ',', $spec;
             push @all_servers, @servers;
             $parameters = { servers => \@servers };
@@ -118,10 +129,16 @@ sub new {
             # attempt to find server spec in there
             $spec = $parameters->{servers};
             $type = reftype $spec;
-            if ( !defined $type ) {
-                push @all_servers, split ',', $spec;
+
+            # also need to fixup config
+            if ( !$type ) {
+                my @servers = split ',', $spec;
+                push @all_servers, @servers;
+                $parameters->{servers} = \@servers;
             }
-            elsif ( $type eq 'HASH' ) {
+
+            # regular array spec already
+            elsif ( $type eq 'ARRAY' ) {
                 push @all_servers, @{$spec};
             }
 
